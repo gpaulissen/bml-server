@@ -227,9 +227,21 @@ sub setup_backend () {
           cmd($r_cache, 'npm', 'install', 'express');
 
           cmd($r_cache, 'docker', 'build', '.', '-t', "$USERNAME/bml-web-app");
-          cmd(undef, 'docker', 'run', '-p', '49160:8080', '-d', , "$USERNAME/bml-web-app");
-          cmd(undef, 'docker', 'ps');
-          cmd(undef, 'curl', '-i', 'localhost:49160');
+          execute(undef, undef, 'docker', 'run', '-p', '49160:8080', '-d', , "$USERNAME/bml-web-app");
+          execute(undef, undef, 'curl', '-i', 'localhost:49160');
+
+          # stop the container
+          my @stdout;
+          
+          execute(\@stdout, undef, 'docker', 'ps');
+
+          foreach my $line (@stdout) {
+              my ($container, $image) = split(/ /, $line);
+
+              if (defined($image) && $image eq "$USERNAME/bml-web-app") {
+                  execute(undef, undef, 'docker', 'stop', $container);
+              }
+          }
         }
     };
     
@@ -324,14 +336,13 @@ sub check_status ($$) {
 sub cmd ($@) {
     my ($r_cache, @cmd) = @_;
         
-    if (!(defined($r_cache) && exists($r_cache->{'cmd'}{"@cmd"}))) {
+    if (!exists($r_cache->{'cmd'}{"@cmd"})) {
         eval {
             execute(undef, undef, \@cmd);
         };
         BAIL_OUT("Can not run '@cmd': $@")
             if ($@);
-        $r_cache->{'cmd'}{"@cmd"} = 1
-            if defined($r_cache);
+        $r_cache->{'cmd'}{"@cmd"} = 1;
     }
     ok(1, "Command '@cmd' executed");
 }
