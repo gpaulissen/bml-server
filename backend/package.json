@@ -1,0 +1,10 @@
+{
+  "name": "bml-web-app",
+  "version": "1.0.0",
+  "description": "Bridge Markup via Docker",
+  "author": "Gert-Jan Paulissen <gert.jan.paulissen@gmail.com>",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
