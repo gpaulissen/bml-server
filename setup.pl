@@ -107,6 +107,7 @@ sub execute ($$$);
 sub check_status ($$);
 sub cmd ($@);
 sub update_file ($$$;$);
+sub stop_container($);
 sub debug (@);
 
 # MAIN
@@ -140,7 +141,7 @@ sub process_command_line ()
 
     #
     GetOptions('help' => sub { pod2usage(-verbose => 2) },
-               'init' => sub { remove_tree('backend', 'frontend', { verbose => 0, safe => 1 }) },
+               'init' => sub { ; },
                'verbose+' => \$verbose
         )
         or pod2usage(-verbose => 0);
@@ -226,22 +227,16 @@ sub setup_backend () {
 
           cmd($r_cache, 'npm', 'install', 'express');
 
-          cmd($r_cache, 'docker', 'build', '.', '-t', "$USERNAME/bml-web-app");
-          execute(undef, undef, 'docker', 'run', '-p', '49160:8080', '-d', , "$USERNAME/bml-web-app");
-          execute(undef, undef, 'curl', '-i', 'localhost:49160');
-
-          # stop the container
-          my @stdout;
+          my $image = "$USERNAME/bml-web-app";
           
-          execute(\@stdout, undef, 'docker', 'ps');
+          stop_container($image);
+          
+          execute(undef, undef, ['docker', 'build', '.', '-t', $image]);
+          execute(undef, undef, ['docker', 'run', '-p', '49160:8080', '-d', $image]);
+          sleep(1);
+          execute(undef, undef, ['curl', '-i', 'localhost:49160']);
 
-          foreach my $line (@stdout) {
-              my ($container, $image) = split(/ /, $line);
-
-              if (defined($image) && $image eq "$USERNAME/bml-web-app") {
-                  execute(undef, undef, 'docker', 'stop', $container);
-              }
-          }
+          stop_container($image);
         }
     };
     
@@ -284,6 +279,8 @@ sub execute ($$$) {
     my ($r_stdout, $r_stderr, $cmd) = @_;
 
     my $process = (ref($cmd) eq 'ARRAY' ? "@$cmd": $cmd);
+
+    debug($process);
 
     my ($fh, $stdout, $stderr);
 
@@ -378,6 +375,25 @@ sub create_directory ($$) {
     ok(-d $dir, "Directory '$dir' exists");
 }
 
+sub stop_container($) {
+    debug("stop_container(@_)");
+
+    # stop the container
+    my @stdout;
+          
+    execute(\@stdout, undef, ['docker', 'ps']);
+
+    foreach my $line (@stdout) {
+        my ($container, $image) = split(/\s{3}/, $line);
+
+        debug(sprintf("\$container: %s; \$image: %s", $container, $image));
+        
+        if (defined($image) && $image eq $_[0]) {
+            debug("container found");
+            execute(undef, undef, ['docker', 'stop', $container]);
+        }
+    }
+}
 
 sub debug (@) {
     print STDERR "@_\n"
