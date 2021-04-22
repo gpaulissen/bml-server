@@ -225,8 +225,10 @@ sub setup_backend () {
 
           ok(getcwd() =~ m/$dir$/, "Now in $dir directory");
 
-          cmd($r_cache, 'npm', 'install', 'express');
+          cmd($r_cache, 'npm', 'install', '@hapi/hapi', '--save');
+          create_directory($r_cache, 'uploads');
 
+          if (0) {
           my $image = "$USERNAME/bml-web-app";
           
           stop_container($image);
@@ -237,6 +239,7 @@ sub setup_backend () {
           execute(undef, undef, ['curl', '-i', 'localhost:49160']);
 
           stop_container($image);
+          }
         }
     };
     
